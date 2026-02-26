@@ -506,12 +506,17 @@ class InventoryModule(BaseInventoryPlugin, Constructable, Cacheable):
             raise AnsibleError("Please check API URL in script configuration file.")
 
         resources = []
+        base_scheme = urlparse(api_url).scheme
 
         # Handle pagination
         while api_url:
             api_output = self._fetch_information(api_url)
             resources.extend(api_output["results"])
             api_url = api_output["next"]
+            if base_scheme and api_url:
+                parsed_url = urlparse(api_url)
+                if parsed_url.scheme:
+                    api_url = parsed_url._replace(scheme=base_scheme).geturl()
 
         return resources
 

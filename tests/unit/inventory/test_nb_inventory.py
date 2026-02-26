@@ -216,6 +216,32 @@ def test_get_resource_list_chunked(
     assert resources == mock_get_resource_list.return_value * len(expected)
 
 
+def test_get_resource_list_preserves_base_scheme(inventory_fixture):
+    mock_fetch_information = Mock()
+    mock_fetch_information.side_effect = [
+        {
+            "results": [{"id": 1}],
+            "next": "http://netbox.test.endpoint:1234/api/dcim/racks/?limit=1000&offset=1000",
+        },
+        {"results": [{"id": 2}], "next": None},
+    ]
+    inventory_fixture._fetch_information = mock_fetch_information
+
+    resources = inventory_fixture.get_resource_list(
+        "https://netbox.test.endpoint:1234/api/dcim/racks/?limit=1000"
+    )
+
+    assert resources == [{"id": 1}, {"id": 2}]
+    mock_fetch_information.assert_has_calls(
+        [
+            call("https://netbox.test.endpoint:1234/api/dcim/racks/?limit=1000"),
+            call(
+                "https://netbox.test.endpoint:1234/api/dcim/racks/?limit=1000&offset=1000"
+            ),
+        ]
+    )
+
+
 @patch(
     "ansible_collections.netbox.netbox.plugins.inventory.nb_inventory.DEFAULT_LOCAL_TMP",
     "/fake/path/asdasd3456",
